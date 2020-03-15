@@ -13,8 +13,8 @@
   // service region (e.g., "westus"), and
   // the name of the file you want to run
   // through the speech recognizer.
-  var subscriptionKey = "YourSubscriptionKey";
-  var serviceRegion = "YourServiceRegion"; // e.g., "westus"
+  var subscriptionKey = "6e83631f53fb4a07b0cde7cf8fab0b26";
+  var serviceRegion = "westus"; // e.g., "westus"
   var filename = "YourAudioFile.wav"; // 16000 Hz, Mono
   
   // create the push stream we need for the speech sdk.
@@ -36,7 +36,8 @@
   var speechConfig = sdk.SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
   
   // setting the recognition language to English.
-  speechConfig.speechRecognitionLanguage = "en-US";
+  //speechConfig.speechRecognitionLanguage = "en-US";
+  speechConfig.speechRecognitionLanguage = "zh-CN";
   
   // create the speech recognizer.
   var recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
