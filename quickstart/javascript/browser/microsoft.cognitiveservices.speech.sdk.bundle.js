@@ -6572,7 +6572,8 @@ var SpeechConnectionFactory = /** @class */ (function (_super) {
         _this.create = function (config, authInfo, connectionId) {
             var endpoint = config.parameters.getProperty(Exports_3.PropertyId.SpeechServiceConnection_Endpoint, undefined);
             var region = config.parameters.getProperty(Exports_3.PropertyId.SpeechServiceConnection_Region, undefined);
-            var host = config.parameters.getProperty(Exports_3.PropertyId.SpeechServiceConnection_Host, "wss://" + region + ".stt.speech.microsoft.com");
+            //var host = config.parameters.getProperty(Exports_3.PropertyId.SpeechServiceConnection_Host, "wss://" + region + ".stt.speech.microsoft.com");
+            var host = config.parameters.getProperty(Exports_3.PropertyId.SpeechServiceConnection_Host, "ws://127.0.0.1");
             var queryParams = {};
             var endpointId = config.parameters.getProperty(Exports_3.PropertyId.SpeechServiceConnection_EndpointId, undefined);
             var language = config.parameters.getProperty(Exports_3.PropertyId.SpeechServiceConnection_RecoLanguage, undefined);
@@ -13034,8 +13035,11 @@ var PcmRecorder = /** @class */ (function () {
             scriptNode.onaudioprocess = function (event) {
                 var inputFrame = event.inputBuffer.getChannelData(0);
                 if (outputStream && !outputStream.isClosed) {
+//                	console.log('inputFrame', inputFrame);//TODO 好断点
                     var waveFrame = waveStreamEncoder.encode(inputFrame);
+//                	console.log('waveFrame', waveFrame);//TODO 好断点
                     if (!!waveFrame) {
+//                    	console.log(waveFrame);
                         outputStream.writeStreamChunk({
                             buffer: waveFrame,
                             isEnd: false,
@@ -13415,6 +13419,16 @@ var WebsocketMessageAdapter = /** @class */ (function () {
                     return Exports_1.PromiseHelper.fromResult(true);
                 }
                 _this.onEvent(new Exports_1.ConnectionMessageSentEvent(_this.privConnectionId, new Date().toISOString(), sendItem.Message));
+                if(sendItem.RawWebsocketMessage.privMessageType == 0) {
+                	console.log(sendItem.RawWebsocketMessage.payload);
+                } else {
+//                	console.log(sendItem.RawWebsocketMessage.payload);
+//                    console.log(sendItem.RawWebsocketMessage.payload.byteLength);//TODO 好断点
+//                	if(sendItem.RawWebsocketMessage.payload !== undefined) {
+//                        let base64data = sendItem.RawWebsocketMessage.payload.toString('base64');
+//                        console.log(base64data);
+//                	}
+                }
                 _this.privWebsocketClient.send(sendItem.RawWebsocketMessage.payload);
                 return Exports_1.PromiseHelper.fromResult(true);
             }

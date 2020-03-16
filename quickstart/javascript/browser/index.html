@@ -104,7 +104,10 @@
 
         //speechConfig.speechRecognitionLanguage = "en-US";
         speechConfig.speechRecognitionLanguage = "zh-CN";
+//         Exports_3.PropertyId.SpeechServiceConnection_Host, "ws://127.0.0.1"
+        console.log(speechConfig);
         var audioConfig  = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+        console.log(audioConfig);
         recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
 
 		recognizer.recognized = (r, event) => {
