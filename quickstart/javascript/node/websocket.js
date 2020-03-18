@@ -9,12 +9,12 @@
   var serviceRegion = "westus"; // e.g., "westus"
   var filename = "YourAudioFile.wav"; // 16000 Hz, Mono
   var pushStream = sdk.AudioInputStream.createPushStream();
-  console.log(pushStream.write.toString());
-  fs.createReadStream(filename).on('data', function(arrayBuffer) {
-    pushStream.write(arrayBuffer.slice());
-  }).on('end', function() {
-//    pushStream.close();
-  });
+//  console.log(pushStream.write.toString());
+//  fs.createReadStream(filename).on('data', function(arrayBuffer) {
+//    pushStream.write(arrayBuffer.slice());
+//  }).on('end', function() {
+////    pushStream.close();
+//  });
   var jq = function(buff) {
 		return buff.slice(buff.indexOf('\n') + 1, buff.length);
 	};
@@ -26,7 +26,62 @@
 	    sampleRate: 16000,
 	    bitDepth: 16
 	  });
+  var send_startmsg = true;
   wss.on('connection', function connection(ws) {
+	  var requestid = '';
+	  console.log("Now recognizing from: " + filename);
+	  var audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
+	//  console.log(audioConfig);
+	  var speechConfig = sdk.SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
+	  speechConfig.speechRecognitionLanguage = "zh-CN";
+	//  console.log(speechConfig);
+	  var recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
+	  recognizer.recognized = (r, event) => {
+	    console.log(event);
+	    console.log(event.privResult.SpeechRecognitionResult);
+	    if(event.privResult.privText) {
+			let phrase = 'X-RequestId:' + event.privSessionId + '\r\n\
+Path:speech.phrase\r\n\
+Content-Type:application/json; charset=utf-8\r\n\
+\r\n\
+' + event.privResult.privJson;
+//{"Id":"' + event.privResult.privResultId + '","RecognitionStatus":"Success","DisplayText":"' + event.privResult.privText + '","Offset":' + event.privResult.privDuration + ',"Duration":' + event.privResult.duration + '}';
+		    console.log('----------------------------phrase------------------------------');
+		    console.log(phrase);
+		    console.log('----------------------------------------------------------');
+		    ws.send(phrase);
+		    send_startmsg = true;
+		}
+	  };
+	  recognizer.recognizing = (r, event) => {
+	    console.log(event);
+	    console.log(event.privResult.SpeechRecognitionResult);
+	    if(event.privResult.privText) {
+	    	if(send_startmsg) {
+		    	send_startmsg = false;
+		    	var startmsg = 'X-RequestId:' + requestid + '\r\n\
+Path:speech.startDetected\r\n\
+Content-Type:application/json; charset=utf-8\r\n\
+\r\n\
+{"Offset":' + event.privResult.privOffset + '}';
+			    console.log('----------------------------startmsg------------------------------');
+			    console.log(startmsg);
+			    console.log('----------------------------------------------------------');
+		    	ws.send(startmsg);
+	    	}
+	    	let hypothesis = 'X-RequestId:' + requestid + '\r\n\
+Path:speech.hypothesis\r\n\
+Content-Type:application/json; charset=utf-8\r\n\
+\r\n\
+' + event.privResult.privJson;
+//{"Id":"' + event.privResult.privResultId + '","Text":"' + event.privResult.privText + '","Offset":' + event.privResult.privOffset + ',"Duration":' + event.privResult.privDuration + '}';
+		    console.log('---------------------------hypothesis-------------------------------');
+		    console.log(hypothesis);
+		    console.log('----------------------------------------------------------');
+		    ws.send(hypothesis);
+		}
+	  };
+	  recognizer.startContinuousRecognitionAsync();
     ws.on('message', function incoming(message) {
 //    	let base64data = message.toString('base64');
 //    	console.log(base64data);
@@ -47,6 +102,22 @@
           message = jq(message);
 //          data = Buffer.concat([data, message], data.length + message.length);
           pushStream.write(message);
+      } else if(message.length == 144) {
+    	  console.log('==============================================================');
+    	  var index = message.indexOf('x-requestid: ') + 'x-requestid: '.length;
+    	  console.log('index =', index);
+    	  requestid = message.substring(index, index + '3864B344DCB74B80976843C098130683'.length);
+    	  console.log('requestid =', requestid);
+    	  var inimsg = 'X-RequestId:' + requestid + '\r\n\
+Path:turn.start\r\n\
+Content-Type:application/json; charset=utf-8\r\n\
+\r\n\
+{\r\n\
+  "context": {\r\n\
+    "serviceTag": "4eb371467e9b4bb1923c7ed2974efb86"\r\n\
+  }\r\n\
+}';
+    	  ws.send(inimsg);
       } else {
     	  console.log('《', message, "》");
       }
@@ -57,18 +128,6 @@
         fileWriter.write(data);
         fileWriter.end();
       });
-    ws.send('something');
   });
-  console.log("Now recognizing from: " + filename);
-  var audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
-//  console.log(audioConfig);
-  var speechConfig = sdk.SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
-  speechConfig.speechRecognitionLanguage = "zh-CN";
-//  console.log(speechConfig);
-  var recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
-  recognizer.recognized = (r, event) => {
-    console.log(event);
-  };
-  recognizer.startContinuousRecognitionAsync();
 }());
   
