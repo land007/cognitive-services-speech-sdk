@@ -40,16 +40,25 @@
 	    console.log(event);
 	    console.log(event.privResult.SpeechRecognitionResult);
 	    if(event.privResult.privText) {
-			let phrase = 'X-RequestId:' + event.privSessionId + '\r\n\
+			let phrase = 'X-RequestId:' + requestid + '\r\n\
 Path:speech.phrase\r\n\
 Content-Type:application/json; charset=utf-8\r\n\
 \r\n\
 ' + event.privResult.privJson;
-//{"Id":"' + event.privResult.privResultId + '","RecognitionStatus":"Success","DisplayText":"' + event.privResult.privText + '","Offset":' + event.privResult.privDuration + ',"Duration":' + event.privResult.duration + '}';
+//{"Id":"426f641361e749518ce5a7c81c156e2e","RecognitionStatus":"Success","DisplayText":"' + event.privResult.privText + '","Offset":' + event.privResult.privOffset + ',"Duration":' + event.privResult.privDuration + '}';
 		    console.log('----------------------------phrase------------------------------');
 		    console.log(phrase);
 		    console.log('----------------------------------------------------------');
 		    ws.send(phrase);
+		    let endDetected = 'X-RequestId:' + event.privSessionId + '\r\n\
+Path:speech.endDetected\r\n\
+Content-Type:application/json; charset=utf-8\r\n\
+\r\n\
+{"Offset":' + event.privResult.privOffset + '}';
+		    console.log('----------------------------endDetected------------------------------');
+		    console.log(endDetected);
+		    console.log('----------------------------------------------------------');
+		    ws.send(endDetected);
 		    send_startmsg = true;
 		}
 	  };
