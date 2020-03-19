@@ -15,6 +15,14 @@
 //  }).on('end', function() {
 ////    pushStream.close();
 //  });
+  var toBuffer = function (ab) {
+	    var buf = new Buffer(ab.byteLength);
+	    var view = new Uint8Array(ab);
+	    for (var i = 0; i < buf.length; ++i) {
+	        buf[i] = view[i];
+	    }
+	    return buf;
+	}
   var jq = function(buff) {
 		return buff.slice(buff.indexOf('\n') + 1, buff.length);
 	};
@@ -50,7 +58,7 @@ Content-Type:application/json; charset=utf-8\r\n\
 		    console.log(phrase);
 		    console.log('----------------------------------------------------------');
 		    ws.send(phrase);
-		    let endDetected = 'X-RequestId:' + event.privSessionId + '\r\n\
+		    let endDetected = 'X-RequestId:' + requestid + '\r\n\
 Path:speech.endDetected\r\n\
 Content-Type:application/json; charset=utf-8\r\n\
 \r\n\
@@ -111,6 +119,23 @@ Content-Type:application/json; charset=utf-8\r\n\
           message = jq(message);
 //          data = Buffer.concat([data, message], data.length + message.length);
           pushStream.write(message);
+          
+          //test
+//          let header = 'cpath: audio\r\n\
+//x-requestid: ' + requestid + '\r\n\
+//x-timestamp: 2020-03-19T01:18:23.188Z\r\n\
+//';
+          let header = 'X-RequestId:' + requestid + '\r\n\
+Path:audio\r\n\
+Content-Type:audio/x-wav\r\n\
+\r\n\
+';
+          var header_buffer = Buffer.from(header);
+          var index_buffer = new ArrayBuffer(2);
+          var view = new DataView(index_buffer, 0, 2);
+          view.setInt16(0, header_buffer.byteLength);
+          let audo = Buffer.concat([toBuffer(index_buffer), header_buffer, message]);
+//          ws.send(audo);
       } else if(message.length == 144) {
     	  console.log('==============================================================');
     	  var index = message.indexOf('x-requestid: ') + 'x-requestid: '.length;
