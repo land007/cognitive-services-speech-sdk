@@ -8,7 +8,7 @@
   var subscriptionKey = "6e83631f53fb4a07b0cde7cf8fab0b26";
   var serviceRegion = "westus"; // e.g., "westus"
   var filename = "YourAudioFile.wav"; // 16000 Hz, Mono
-  var pushStream = sdk.AudioInputStream.createPushStream();
+//  var pushStream = sdk.AudioInputStream.createPushStream();
 //  console.log(pushStream.write.toString());
 //  fs.createReadStream(filename).on('data', function(arrayBuffer) {
 //    pushStream.write(arrayBuffer.slice());
@@ -36,14 +36,15 @@
 	  });
   var send_startmsg = true;
   wss.on('connection', function connection(ws) {
-	  var requestid = '';
+	  let requestid = '';
 	  console.log("Now recognizing from: " + filename);
-	  var audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
+	  let pushStream = sdk.AudioInputStream.createPushStream();
+	  let audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
 	//  console.log(audioConfig);
-	  var speechConfig = sdk.SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
+	  let speechConfig = sdk.SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
 	  speechConfig.speechRecognitionLanguage = "zh-CN";
 	//  console.log(speechConfig);
-	  var recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
+	  let recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
 	  recognizer.recognized = (r, event) => {
 	    console.log(event);
 	    console.log(event.privResult.SpeechRecognitionResult);
@@ -57,6 +58,7 @@ Content-Type:application/json; charset=utf-8\r\n\
 		    console.log('----------------------------phrase------------------------------');
 		    console.log(phrase);
 		    console.log('----------------------------------------------------------');
+		    if(ws)
 		    ws.send(phrase);
 		    let endDetected = 'X-RequestId:' + requestid + '\r\n\
 Path:speech.endDetected\r\n\
@@ -66,6 +68,7 @@ Content-Type:application/json; charset=utf-8\r\n\
 		    console.log('----------------------------endDetected------------------------------');
 		    console.log(endDetected);
 		    console.log('----------------------------------------------------------');
+		    if(ws)
 		    ws.send(endDetected);
 		    send_startmsg = true;
 		}
@@ -76,7 +79,7 @@ Content-Type:application/json; charset=utf-8\r\n\
 	    if(event.privResult.privText) {
 	    	if(send_startmsg) {
 		    	send_startmsg = false;
-		    	var startmsg = 'X-RequestId:' + requestid + '\r\n\
+		    	let startmsg = 'X-RequestId:' + requestid + '\r\n\
 Path:speech.startDetected\r\n\
 Content-Type:application/json; charset=utf-8\r\n\
 \r\n\
@@ -84,6 +87,7 @@ Content-Type:application/json; charset=utf-8\r\n\
 			    console.log('----------------------------startmsg------------------------------');
 			    console.log(startmsg);
 			    console.log('----------------------------------------------------------');
+			    if(ws)
 		    	ws.send(startmsg);
 	    	}
 	    	let hypothesis = 'X-RequestId:' + requestid + '\r\n\
@@ -95,6 +99,7 @@ Content-Type:application/json; charset=utf-8\r\n\
 		    console.log('---------------------------hypothesis-------------------------------');
 		    console.log(hypothesis);
 		    console.log('----------------------------------------------------------');
+		    if(ws)
 		    ws.send(hypothesis);
 		}
 	  };
@@ -118,7 +123,9 @@ Content-Type:application/json; charset=utf-8\r\n\
           message = jq(message);//方法 https://stackoverflow.com/questions/34319617/recording-binary-stream-to-wav-file-over-websocket-with-ssl
           message = jq(message);
 //          data = Buffer.concat([data, message], data.length + message.length);
-          pushStream.write(message);
+          if(pushStream) {
+              pushStream.write(message);
+          }
           
           //test
 //          let header = 'cpath: audio\r\n\
@@ -130,19 +137,20 @@ Path:audio\r\n\
 Content-Type:audio/x-wav\r\n\
 \r\n\
 ';
-          var header_buffer = Buffer.from(header);
-          var index_buffer = new ArrayBuffer(2);
-          var view = new DataView(index_buffer, 0, 2);
+          let header_buffer = Buffer.from(header);
+          let index_buffer = new ArrayBuffer(2);
+          let view = new DataView(index_buffer, 0, 2);
           view.setInt16(0, header_buffer.byteLength);
           let audo = Buffer.concat([toBuffer(index_buffer), header_buffer, message]);
+//          if(ws)
 //          ws.send(audo);
       } else if(message.length == 144) {
     	  console.log('==============================================================');
-    	  var index = message.indexOf('x-requestid: ') + 'x-requestid: '.length;
+    	  let index = message.indexOf('x-requestid: ') + 'x-requestid: '.length;
     	  console.log('index =', index);
     	  requestid = message.substring(index, index + '3864B344DCB74B80976843C098130683'.length);
     	  console.log('requestid =', requestid);
-    	  var inimsg = 'X-RequestId:' + requestid + '\r\n\
+    	  let inimsg = 'X-RequestId:' + requestid + '\r\n\
 Path:turn.start\r\n\
 Content-Type:application/json; charset=utf-8\r\n\
 \r\n\
@@ -151,6 +159,7 @@ Content-Type:application/json; charset=utf-8\r\n\
     "serviceTag": "4eb371467e9b4bb1923c7ed2974efb86"\r\n\
   }\r\n\
 }';
+    	  if(ws)
     	  ws.send(inimsg);
       } else {
     	  console.log('《', message, "》");
@@ -159,9 +168,16 @@ Content-Type:application/json; charset=utf-8\r\n\
       i++
     });
     ws.on('close', function() {
-        fileWriter.write(data);
-        fileWriter.end();
+    	pushStream.close();
+    	pushStream = undefined;
+    	recognizer.close();
+        recognizer = undefined;
+//        ws.close();
+        ws = undefined;
+//        fileWriter.write(data);
+//        fileWriter.end();
       });
+    ws.on('error', () => console.log('error'));
   });
 }());
   
